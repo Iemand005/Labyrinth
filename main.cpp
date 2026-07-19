@@ -7,7 +7,7 @@
 #endif
 #include <string>
 #include <iostream>
-#include "Atmosphere.hpp"
+#include "Labyrinth.hpp"
 
 #include <fstream>
 #include <chrono>
@@ -34,8 +34,8 @@ int main() {
 	std::cout << "Hiii" << std::endl;
 
 	try {
-		LogToFile("Creating Atmosphere game instance...");
-		Atmosphere game;
+		LogToFile("Creating Labyrinth game instance...");
+		Labyrinth game;
 
 		LogToFile("Running game...");
 		game.Run();

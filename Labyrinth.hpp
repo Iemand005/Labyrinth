@@ -22,7 +22,7 @@
 #include <Graphics/VulkanDevice.hpp>
 #include <openvr/OpenVR.hpp>
 
-class Atmosphere : public fe::EditableGame {
+class Labyrinth : public fe::EditableGame {
 public:
 
 	bool showDebugUI = false;
@@ -69,7 +69,7 @@ public:
 	float freeCamSpeed = 15.0f;
 	float segmentLength = 12.0f;
 	
-	Atmosphere(int width = 1000, int height = 1000, bool vr = false) : fe::EditableGame(fe::XRGameOptions(width, height, vr)) {
+	Labyrinth(int width = 1000, int height = 1000, bool vr = false) : fe::EditableGame(fe::XRGameOptions(width, height, vr)) {
 
 		SetClearColor(0.1f, 0.3f, 1);
 
