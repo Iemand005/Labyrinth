@@ -133,7 +133,7 @@ public:
 		ball->name = "Ball";
 		ball->state.position = glm::vec3(0.0f, 1.0f, 0.0f);
 
-		ball->SetPhysicsObject(GetPhysicsEngine()->CreateObject(glm::vec3(0.5f), true, true));
+		ball->SetPhysicsObject(GetPhysicsEngine()->CreateSphereObject(0.5f, true));
 		if (ball->physicsObject) {
 			ball->physicsObject->SetPosition(ball->state.position);
 		}
