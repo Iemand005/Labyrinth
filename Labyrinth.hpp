@@ -33,6 +33,8 @@ public:
 	bool showDebugUI = false;
 	bool useRectangularPlayerHitbox = true;
 	bool hasWon = false;
+	unsigned int mazeSeed = 0;
+	std::vector<std::shared_ptr<fe::ObjectBase>> mazeWalls;
 
 	std::vector<fe::Accelerometer> accelerometers;
 	std::vector<glm::vec3> accelReadings;
@@ -55,7 +57,12 @@ public:
 	MazeCell mazeGrid[MAZE_ROWS][MAZE_COLS];
 
 	void GenerateMaze() {
-		std::mt19937 rng(42);
+		// Reset all cells
+		for (int r = 0; r < MAZE_ROWS; r++)
+			for (int c = 0; c < MAZE_COLS; c++)
+				mazeGrid[r][c] = MazeCell();
+
+		std::mt19937 rng(mazeSeed);
 		std::uniform_int_distribution<int> dirDist(0, 3);
 		int dx[] = { 0, 0, 1, -1 };
 		int dz[] = { -1, 1, 0, 0 };
@@ -97,7 +104,7 @@ public:
 
 	glm::vec3 GetBallSpawnPos() {
 		glm::vec3 pos = CellToWorld(0, 0);
-		pos.y = 4.0f;
+		pos.y = BALL_RADIUS + 0.1f;
 		return pos;
 	}
 
@@ -125,11 +132,63 @@ public:
 			wall->physicsObject->SetPosition(pos);
 		}
 		this->scene->AddObject(wall);
+		mazeWalls.push_back(wall);
+	}
+
+	void BuildMazeWalls() {
+		float totalW = MAZE_COLS * CELL_SIZE;
+		float totalH = MAZE_ROWS * CELL_SIZE;
+		float halfTotalW = totalW * 0.5f;
+		float halfTotalH = totalH * 0.5f;
+		glm::vec3 wallColor(0.3f, 0.3f, 0.3f);
+
+		for (int row = 0; row < MAZE_ROWS; row++) {
+			for (int col = 0; col < MAZE_COLS; col++) {
+				float cx = col * CELL_SIZE - halfTotalW + CELL_SIZE * 0.5f;
+				float cz = row * CELL_SIZE - halfTotalH + CELL_SIZE * 0.5f;
+				float hy = WALL_HEIGHT * 0.5f;
+
+				if (mazeGrid[row][col].wallN) {
+					float wz = cz - CELL_SIZE * 0.5f;
+					AddWall(glm::vec3(cx, hy, wz), glm::vec3(CELL_SIZE + WALL_THICK, WALL_HEIGHT, WALL_THICK), wallColor);
+				}
+				if (mazeGrid[row][col].wallW) {
+					float wx = cx - CELL_SIZE * 0.5f;
+					AddWall(glm::vec3(wx, hy, cz), glm::vec3(WALL_THICK, WALL_HEIGHT, CELL_SIZE + WALL_THICK), wallColor);
+				}
+				if (row == MAZE_ROWS - 1 && mazeGrid[row][col].wallS) {
+					float wz = cz + CELL_SIZE * 0.5f;
+					AddWall(glm::vec3(cx, hy, wz), glm::vec3(CELL_SIZE + WALL_THICK, WALL_HEIGHT, WALL_THICK), wallColor);
+				}
+				if (col == MAZE_COLS - 1 && mazeGrid[row][col].wallE) {
+					float wx = cx + CELL_SIZE * 0.5f;
+					AddWall(glm::vec3(wx, hy, cz), glm::vec3(WALL_THICK, WALL_HEIGHT, CELL_SIZE + WALL_THICK), wallColor);
+				}
+			}
+		}
+	}
+
+	void RebuildMaze() {
+		for (auto& w : mazeWalls) {
+			scene->RemoveObject(w);
+		}
+		mazeWalls.clear();
+
+		mazeSeed = static_cast<unsigned int>(std::random_device{}());
+		GenerateMaze();
+		BuildMazeWalls();
+
+		if (goalObject) {
+			glm::vec3 goalPos = CellToWorld(MAZE_COLS - 1, MAZE_ROWS - 1);
+			goalPos.y = 0.8f;
+			goalObject->state.position = goalPos;
+		}
 	}
 
 	Labyrinth(int width = 1000, int height = 1000, bool vr = false) : fe::EditableGame(fe::XRGameOptions(width, height, vr)) {
 
 		SetClearColor(0.1f, 0.3f, 1);
+		mazeSeed = static_cast<unsigned int>(std::random_device{}());
 
 		if (!useVulkan)
 			LoadShaders("resources/shaders/VertexShader.glsl", "resources/shaders/FragmentShader.glsl");
@@ -203,36 +262,7 @@ public:
 		goalObject->color = glm::vec3(0.0f, 1.0f, 0.0f);
 		this->scene->AddObject(goalObject);
 
-		glm::vec3 wallColor(0.3f, 0.3f, 0.3f);
-
-		// Maze walls - for each cell, emit its N and W walls (to avoid duplicates), plus bottom row S and right col E
-		float halfTotalW = totalW * 0.5f;
-		float halfTotalH = totalH * 0.5f;
-
-		for (int row = 0; row < MAZE_ROWS; row++) {
-			for (int col = 0; col < MAZE_COLS; col++) {
-				float cx = col * CELL_SIZE - halfTotalW + CELL_SIZE * 0.5f;
-				float cz = row * CELL_SIZE - halfTotalH + CELL_SIZE * 0.5f;
-				float hy = WALL_HEIGHT * 0.5f;
-
-				if (mazeGrid[row][col].wallN) {
-					float wz = cz - CELL_SIZE * 0.5f;
-					AddWall(glm::vec3(cx, hy, wz), glm::vec3(CELL_SIZE + WALL_THICK, WALL_HEIGHT, WALL_THICK), wallColor);
-				}
-				if (mazeGrid[row][col].wallW) {
-					float wx = cx - CELL_SIZE * 0.5f;
-					AddWall(glm::vec3(wx, hy, cz), glm::vec3(WALL_THICK, WALL_HEIGHT, CELL_SIZE + WALL_THICK), wallColor);
-				}
-				if (row == MAZE_ROWS - 1 && mazeGrid[row][col].wallS) {
-					float wz = cz + CELL_SIZE * 0.5f;
-					AddWall(glm::vec3(cx, hy, wz), glm::vec3(CELL_SIZE + WALL_THICK, WALL_HEIGHT, WALL_THICK), wallColor);
-				}
-				if (col == MAZE_COLS - 1 && mazeGrid[row][col].wallE) {
-					float wx = cx + CELL_SIZE * 0.5f;
-					AddWall(glm::vec3(wx, hy, cz), glm::vec3(WALL_THICK, WALL_HEIGHT, CELL_SIZE + WALL_THICK), wallColor);
-				}
-			}
-		}
+		BuildMazeWalls();
 
 		// Player
 		this->player = std::make_shared<fe::Character>();
@@ -348,7 +378,7 @@ public:
 
 			if (!accelerometers.empty() && selectedAccel < (int)accelReadings.size()) {
 				auto& ar = accelReadings[selectedAccel];
-				GetPhysicsEngine()->SetGravity(glm::vec3(ar.x * 12.0f, -9.81f, ar.z * 12.0f));
+				GetPhysicsEngine()->SetGravity(glm::vec3(ar.x * 12.0f, -9.81f, ar.y * 12.0f));
 			} else {
 				GetPhysicsEngine()->SetGravity(glm::vec3(0.0f, -9.81f, 0.0f));
 			}
@@ -399,6 +429,7 @@ public:
 			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "YOU WON!");
 			if (ImGui::Button("Play Again")) {
 				hasWon = false;
+				RebuildMaze();
 				ResetBallToSpawn();
 			}
 			ImGui::End();
