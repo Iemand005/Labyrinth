@@ -109,6 +109,7 @@ public:
 		auto ground = std::make_shared<fe::Object<>>(planeMesh);
 		ground->name = "Ground";
 		ground->state.position = glm::vec3(0.0f, 0.0f, 0.0f);
+		ground->color = glm::vec3(0.0f, 0.0f, 0.0f);
 		ground->isStatic = true;
 		ground->SetPhysicsObject(GetPhysicsEngine()->CreateObject(planeMesh.vertices, planeMesh.indices));
 		if (ground->physicsObject) {

@@ -7,9 +7,11 @@ layout (location = 2) in vec2 aTexCoord;
 layout (location = 0) out vec3 Normal;
 layout (location = 1) out vec3 FragPos;
 layout (location = 2) out vec2 TexCoord;
+layout (location = 3) out vec4 ObjectColor;
 
 layout(push_constant) uniform PushConstants {
     mat4 model;
+    vec4 objectColor;
 } pc;
 
 layout(binding = 0) uniform UBO {
@@ -26,4 +28,5 @@ void main()
     Normal = normalMat * aNormal;
     FragPos = worldPos.xyz;
     TexCoord = aTexCoord;
+    ObjectColor = pc.objectColor;
 }
