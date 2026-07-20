@@ -310,6 +310,9 @@ public:
 			ImGui::Text("X: %.4f", accelReading.x);
 			ImGui::Text("Y: %.4f", accelReading.y);
 			ImGui::Text("Z: %.4f", accelReading.z);
+			if (ImGui::Button("Calibrate")) {
+				accelerometer.Calibrate();
+			}
 			ImGui::End();
 		}
 
