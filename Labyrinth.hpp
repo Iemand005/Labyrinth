@@ -19,6 +19,7 @@
 
 #include <EditableGame.hpp>
 #include <Primitives.hpp>
+#include <Sensors/Accelerometer.hpp>
 #include <Graphics/VulkanDevice.hpp>
 #ifdef FE_INCLUDE_OPENVR
 #include <openvr/OpenVR.hpp>
@@ -70,6 +71,9 @@ public:
 	bool freeCamera = false;
 	float freeCamSpeed = 15.0f;
 	float segmentLength = 12.0f;
+
+	fe::Accelerometer accelerometer;
+	glm::vec3 accelReading{0.0f};
 	
 	Labyrinth(int width = 1000, int height = 1000, bool vr = false) : fe::EditableGame(fe::XRGameOptions(width, height, vr)) {
 
