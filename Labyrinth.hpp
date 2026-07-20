@@ -220,7 +220,7 @@ public:
 
 		camera->SetPos(glm::vec3(0.0f, 25.0f, 0.0f));
 		camera->pitch = -90.0f;
-		camera->yaw = 0.0f;
+		camera->yaw = 90.0f;
 		camera->UpdateDirection();
 	}
 
