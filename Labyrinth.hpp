@@ -267,7 +267,7 @@ public:
 			ProcessInput();
 
 			if (accelerometer.IsAvailable()) {
-				GetPhysicsEngine()->SetGravity(glm::vec3(accelReading.x * 30.0f, -9.81f, accelReading.z * 30.0f));
+				GetPhysicsEngine()->SetGravity(glm::vec3(accelReading.x * 12.0f, -5.0f, accelReading.z * 12.0f));
 			}
 
 			if (!freeCamera) {
