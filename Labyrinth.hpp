@@ -34,8 +34,9 @@ public:
 	bool useRectangularPlayerHitbox = true;
 	bool hasWon = false;
 
-	fe::Accelerometer accelerometer;
-	glm::vec3 accelReading{0.0f};
+	std::vector<fe::Accelerometer> accelerometers;
+	std::vector<glm::vec3> accelReadings;
+	int selectedAccel = 0;
 	std::shared_ptr<fe::Object<>> ballObject;
 	std::shared_ptr<fe::Object<>> goalObject;
 
@@ -123,9 +124,11 @@ public:
 
 		GetPhysicsEngine()->EnableGravity();
 
-		if (accelerometer.IsAvailable()) {
-			accelerometer.Start([this](const glm::vec3& accel) {
-				accelReading = accel;
+		accelerometers = fe::Accelerometer::EnumerateAll();
+		accelReadings.resize(accelerometers.size(), glm::vec3(0.0f));
+		for (size_t i = 0; i < accelerometers.size(); i++) {
+			accelerometers[i].Start([this, i](const glm::vec3& accel) {
+				accelReadings[i] = accel;
 			});
 		}
 	}
@@ -232,6 +235,8 @@ public:
 		}
 	}
 
+	bool freeCamera = false;
+
 	void SyncCameraToPlayer() {
 		if (!player || freeCamera) return;
 
@@ -316,7 +321,7 @@ public:
 		if (player->physicsObject) {
 			player->physicsObject->SetPosition(player->state.position);
 		}
-		camera->farDist = farPlane;
+		// camera->farDist = farPlane;
 		camera->SetAspect(camera->aspect);
 		SyncCameraToPlayer();
 
