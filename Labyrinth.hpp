@@ -86,6 +86,12 @@ public:
 		LoadModels();
 
 		GetPhysicsEngine()->EnableGravity();
+
+		if (accelerometer.IsAvailable()) {
+			accelerometer.Start([this](const glm::vec3& accel) {
+				accelReading = accel;
+			});
+		}
 	}
 
 	void OnPreSwap() override {
@@ -264,6 +270,14 @@ public:
 		BeginFrame();
 
 		DrawDebugUI();
+
+		if (accelerometer.IsAvailable()) {
+			ImGui::Begin("Accelerometer");
+			ImGui::Text("X: %.4f", accelReading.x);
+			ImGui::Text("Y: %.4f", accelReading.y);
+			ImGui::Text("Z: %.4f", accelReading.z);
+			ImGui::End();
+		}
 
 		EndFrame();
 	}
