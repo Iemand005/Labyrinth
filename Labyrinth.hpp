@@ -8,6 +8,8 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <vector>
+#include <random>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -29,57 +31,91 @@ class Labyrinth : public fe::EditableGame {
 public:
 
 	bool showDebugUI = false;
-	
 	bool useRectangularPlayerHitbox = true;
-
-	std::vector<glm::vec3> path;
-	int windowStart = 0;
-	float pathIndex = 1.0f;
-	std::vector<std::shared_ptr<fe::Object<>>> chunkObjects;  // Track loaded chunk objects
-	std::vector<bool> chunksLoaded;  // Track which chunks have been meshed
-	glm::vec3 lastUp = glm::vec3(0, 1, 0);
-	glm::vec3 lastRight = glm::vec3(1, 0, 0);
-	glm::vec3 prevEndForward{0};
-	bool hasPrevEnd = false;
-
-	static constexpr int POINTS_PER_CHUNK = 4;
-	static constexpr int SHIFT = 3;
-	static constexpr int MAX_CHUNKS = 32;
-	static constexpr int TUNNEL_SEGMENTS = 64;
-	static constexpr int SUBDIVISIONS_PER_SEG = 48;
-	int CHUNK_LOAD_DISTANCE = 2;  // Load chunks within this many chunks of player
-	static constexpr int GRID_WIDTH = 1;  // 5x5 grid
-	static constexpr int GRID_HEIGHT = 1;
-
-	int NUM_CHUNKS = 4;
-
-	float lightSpeed = 0.3f;
-
-	float bgColorFreq = 0.3f;
-	float visualizerScale = 8.0f;
-
-	float audioAmplitudeScale = 10.0f;
-	float audioSpeedMultiplier = 0.15f;
-	float baseSpeedElapsedTimeBumpy = 0.0002f;
-	float baseSpeedElapsedTime = 0.0002f;
-
-	float cameraSpeed = 1.0f;
-	float motionAmount = 1.2f;
-	float tunnelRoundness = 0.0f;
-	float animationSpeed = 1.0f;
-	float farPlane = 1000.0f;
-	bool freeCamera = false;
-	float freeCamSpeed = 15.0f;
-	float segmentLength = 12.0f;
+	bool hasWon = false;
 
 	fe::Accelerometer accelerometer;
 	glm::vec3 accelReading{0.0f};
-	
+	std::shared_ptr<fe::Object<>> ballObject;
+	std::shared_ptr<fe::Object<>> goalObject;
+
+	static constexpr int MAZE_COLS = 8;
+	static constexpr int MAZE_ROWS = 8;
+	static constexpr float CELL_SIZE = 2.0f;
+	static constexpr float WALL_HEIGHT = 1.0f;
+	static constexpr float WALL_THICK = 0.3f;
+	static constexpr float BALL_RADIUS = 0.5f;
+
+	struct MazeCell {
+		bool wallN = true, wallS = true, wallE = true, wallW = true;
+		bool visited = false;
+	};
+
+	MazeCell mazeGrid[MAZE_ROWS][MAZE_COLS];
+
+	void GenerateMaze() {
+		std::mt19937 rng(42);
+		std::uniform_int_distribution<int> dirDist(0, 3);
+		int dx[] = { 0, 0, 1, -1 };
+		int dz[] = { -1, 1, 0, 0 };
+
+		auto carve = [&](auto& self, int cx, int cz) -> void {
+			mazeGrid[cz][cx].visited = true;
+
+			int dirs[] = { 0, 1, 2, 3 };
+			std::shuffle(dirs, dirs + 4, rng);
+
+			for (int d = 0; d < 4; d++) {
+				int nd = dirs[d];
+				int nx = cx + dx[nd];
+				int nz = cz + dz[nd];
+				if (nx < 0 || nx >= MAZE_COLS || nz < 0 || nz >= MAZE_ROWS) continue;
+				if (mazeGrid[nz][nx].visited) continue;
+
+				if (nd == 0) { mazeGrid[cz][cx].wallN = false; mazeGrid[nz][nx].wallS = false; }
+				if (nd == 1) { mazeGrid[cz][cx].wallS = false; mazeGrid[nz][nx].wallN = false; }
+				if (nd == 2) { mazeGrid[cz][cx].wallE = false; mazeGrid[nz][nx].wallW = false; }
+				if (nd == 3) { mazeGrid[cz][cx].wallW = false; mazeGrid[nz][nx].wallE = false; }
+
+				self(self, nx, nz);
+			}
+		};
+
+		carve(carve, 0, 0);
+	}
+
+	glm::vec3 CellToWorld(int col, int row) {
+		float totalW = MAZE_COLS * CELL_SIZE;
+		float totalH = MAZE_ROWS * CELL_SIZE;
+		return glm::vec3(
+			col * CELL_SIZE + CELL_SIZE * 0.5f - totalW * 0.5f,
+			0.0f,
+			row * CELL_SIZE + CELL_SIZE * 0.5f - totalH * 0.5f
+		);
+	}
+
+	void AddWall(glm::vec3 pos, glm::vec3 size, glm::vec3 color) {
+		auto wallMesh = fe::Primitives::GenerateCube(
+			{fe::PlaneDirection::Front, fe::PlaneDirection::Back, fe::PlaneDirection::Left,
+			 fe::PlaneDirection::Right, fe::PlaneDirection::Top, fe::PlaneDirection::Bottom},
+			fe::Primitives::defaultUVs, 1.0f);
+		auto wall = std::make_shared<fe::Object<>>(wallMesh);
+		wall->name = "Wall";
+		wall->state.position = pos;
+		wall->state.scale = size;
+		wall->color = color;
+		wall->isStatic = true;
+		wall->SetPhysicsObject(GetPhysicsEngine()->CreateObject(size, false));
+		if (wall->physicsObject) {
+			wall->physicsObject->SetPosition(pos);
+		}
+		this->scene->AddObject(wall);
+	}
+
 	Labyrinth(int width = 1000, int height = 1000, bool vr = false) : fe::EditableGame(fe::XRGameOptions(width, height, vr)) {
 
 		SetClearColor(0.1f, 0.3f, 1);
 
-		// IF 
 		if (!useVulkan)
 			LoadShaders("resources/shaders/VertexShader.glsl", "resources/shaders/FragmentShader.glsl");
 
@@ -94,9 +130,7 @@ public:
 		}
 	}
 
-	void OnPreSwap() override {
-		// ovr.CaptureAndSubmit();
-	}
+	void OnPreSwap() override {}
 
 	void RebuildPlayerPhysicsBody() {
 		auto physicsEngine = GetPhysicsEngine();
@@ -114,8 +148,14 @@ public:
 
 	void LoadModels() {
 
-		// Ground plane (flat horizontal, 20x20)
-		auto planeMesh = fe::Primitives::GeneratePlane(20.0f, 20.0f);
+		GenerateMaze();
+
+		float totalW = MAZE_COLS * CELL_SIZE;
+		float totalH = MAZE_ROWS * CELL_SIZE;
+
+		// Ground plane
+		float groundSize = std::max(totalW, totalH) + 2.0f;
+		auto planeMesh = fe::Primitives::GeneratePlane(groundSize, groundSize);
 		auto ground = std::make_shared<fe::Object<>>(planeMesh);
 		ground->name = "Ground";
 		ground->state.position = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -127,88 +167,65 @@ public:
 		}
 		this->scene->AddObject(ground);
 
-		// Ball (sphere on the plane, rotation enabled)
-		auto sphereMesh = fe::Primitives::GenerateSphere(0.5f, 32, 24);
-		auto ball = std::make_shared<fe::Object<>>(sphereMesh);
-		ball->name = "Ball";
-		ball->state.position = glm::vec3(0.0f, 1.0f, 0.0f);
-
-		ball->SetPhysicsObject(GetPhysicsEngine()->CreateSphereObject(0.5f, true));
-		if (ball->physicsObject) {
-			ball->physicsObject->SetPosition(ball->state.position);
+		// Ball - start at cell (0,0) top-left
+		auto sphereMesh = fe::Primitives::GenerateSphere(BALL_RADIUS, 32, 24);
+		ballObject = std::make_shared<fe::Object<>>(sphereMesh);
+		ballObject->name = "Ball";
+		glm::vec3 startPos = CellToWorld(0, 0);
+		startPos.y = 1.0f;
+		ballObject->state.position = startPos;
+		ballObject->SetPhysicsObject(GetPhysicsEngine()->CreateSphereObject(BALL_RADIUS, true));
+		if (ballObject->physicsObject) {
+			ballObject->physicsObject->SetPosition(ballObject->state.position);
 		}
-		this->scene->AddObject(ball);
+		this->scene->AddObject(ballObject);
 
-		// Walls around the 20x20 plane
-		float wallHeight = 1.0f;
-		float wallThickness = 0.5f;
-		float halfSize = 10.0f;
-		float wallColorR = 0.3f, wallColorG = 0.3f, wallColorB = 0.3f;
+		// Goal object at cell (MAZE_COLS-1, MAZE_ROWS-1) bottom-right
+		float goalSize = 0.8f;
+		auto goalMesh = fe::Primitives::GenerateSphere(goalSize, 16, 12);
+		goalObject = std::make_shared<fe::Object<>>(goalMesh);
+		goalObject->name = "Goal";
+		glm::vec3 goalPos = CellToWorld(MAZE_COLS - 1, MAZE_ROWS - 1);
+		goalPos.y = 0.8f;
+		goalObject->state.position = goalPos;
+		goalObject->color = glm::vec3(0.0f, 1.0f, 0.0f);
+		this->scene->AddObject(goalObject);
 
-		struct WallDef { glm::vec3 pos; glm::vec3 size; };
-		WallDef walls[] = {
-			{ glm::vec3(0.0f, wallHeight * 0.5f, -halfSize), glm::vec3(20.0f + wallThickness, wallHeight, wallThickness) },  // back
-			{ glm::vec3(0.0f, wallHeight * 0.5f,  halfSize), glm::vec3(20.0f + wallThickness, wallHeight, wallThickness) },  // front
-			{ glm::vec3(-halfSize, wallHeight * 0.5f, 0.0f), glm::vec3(wallThickness, wallHeight, 20.0f) },                // left
-			{ glm::vec3( halfSize, wallHeight * 0.5f, 0.0f), glm::vec3(wallThickness, wallHeight, 20.0f) },                // right
-		};
+		glm::vec3 wallColor(0.3f, 0.3f, 0.3f);
 
-		for (auto& w : walls) {
-			auto wallMesh = fe::Primitives::GenerateCube(
-				{fe::PlaneDirection::Front, fe::PlaneDirection::Back, fe::PlaneDirection::Left,
-				 fe::PlaneDirection::Right, fe::PlaneDirection::Top, fe::PlaneDirection::Bottom},
-				fe::Primitives::defaultUVs, 1.0f);
-			auto wall = std::make_shared<fe::Object<>>(wallMesh);
-			wall->name = "Wall";
-			wall->state.position = w.pos;
-			wall->state.scale = w.size;
-			wall->color = glm::vec3(wallColorR, wallColorG, wallColorB);
-			wall->isStatic = true;
-			wall->SetPhysicsObject(GetPhysicsEngine()->CreateObject(w.size, false));
-			if (wall->physicsObject) {
-				wall->physicsObject->SetPosition(w.pos);
+		// Maze walls - for each cell, emit its N and W walls (to avoid duplicates), plus bottom row S and right col E
+		float halfTotalW = totalW * 0.5f;
+		float halfTotalH = totalH * 0.5f;
+
+		for (int row = 0; row < MAZE_ROWS; row++) {
+			for (int col = 0; col < MAZE_COLS; col++) {
+				float cx = col * CELL_SIZE - halfTotalW + CELL_SIZE * 0.5f;
+				float cz = row * CELL_SIZE - halfTotalH + CELL_SIZE * 0.5f;
+				float hy = WALL_HEIGHT * 0.5f;
+
+				if (mazeGrid[row][col].wallN) {
+					float wz = cz - CELL_SIZE * 0.5f;
+					AddWall(glm::vec3(cx, hy, wz), glm::vec3(CELL_SIZE + WALL_THICK, WALL_HEIGHT, WALL_THICK), wallColor);
+				}
+				if (mazeGrid[row][col].wallW) {
+					float wx = cx - CELL_SIZE * 0.5f;
+					AddWall(glm::vec3(wx, hy, cz), glm::vec3(WALL_THICK, WALL_HEIGHT, CELL_SIZE + WALL_THICK), wallColor);
+				}
+				if (row == MAZE_ROWS - 1 && mazeGrid[row][col].wallS) {
+					float wz = cz + CELL_SIZE * 0.5f;
+					AddWall(glm::vec3(cx, hy, wz), glm::vec3(CELL_SIZE + WALL_THICK, WALL_HEIGHT, WALL_THICK), wallColor);
+				}
+				if (col == MAZE_COLS - 1 && mazeGrid[row][col].wallE) {
+					float wx = cx + CELL_SIZE * 0.5f;
+					AddWall(glm::vec3(wx, hy, cz), glm::vec3(WALL_THICK, WALL_HEIGHT, CELL_SIZE + WALL_THICK), wallColor);
+				}
 			}
-			this->scene->AddObject(wall);
-		}
-
-		// Random inner walls
-		srand(42);
-		for (int i = 0; i < 15; i++) {
-			bool horizontal = (rand() % 2 == 0);
-			float wallLen = 2.0f + (rand() % 4) * 1.0f;
-			float wx = (float)((rand() % 17) - 8);
-			float wz = (float)((rand() % 17) - 8);
-
-			glm::vec3 wPos, wSize;
-			if (horizontal) {
-				wPos = glm::vec3(wx, wallHeight * 0.5f, wz);
-				wSize = glm::vec3(wallLen, wallHeight, wallThickness);
-			} else {
-				wPos = glm::vec3(wx, wallHeight * 0.5f, wz);
-				wSize = glm::vec3(wallThickness, wallHeight, wallLen);
-			}
-
-			auto wallMesh = fe::Primitives::GenerateCube(
-				{fe::PlaneDirection::Front, fe::PlaneDirection::Back, fe::PlaneDirection::Left,
-				 fe::PlaneDirection::Right, fe::PlaneDirection::Top, fe::PlaneDirection::Bottom},
-				fe::Primitives::defaultUVs, 1.0f);
-			auto wall = std::make_shared<fe::Object<>>(wallMesh);
-			wall->name = "Wall";
-			wall->state.position = wPos;
-			wall->state.scale = wSize;
-			wall->color = glm::vec3(0.2f, 0.5f, 0.8f);
-			wall->isStatic = true;
-			wall->SetPhysicsObject(GetPhysicsEngine()->CreateObject(wSize, false));
-			if (wall->physicsObject) {
-				wall->physicsObject->SetPosition(wPos);
-			}
-			this->scene->AddObject(wall);
 		}
 
 		// Player
 		this->player = std::make_shared<fe::Character>();
 		this->scene->AddObject(player);
-		this->player->state.position = glm::vec3(3.0f, 3.0f, 3.0f);
+		this->player->state.position = glm::vec3(0.0f, 3.0f, 0.0f);
 		RebuildPlayerPhysicsBody();
 		if (this->player->physicsObject) {
 			this->player->physicsObject->SetPosition(this->player->state.position);
@@ -228,7 +245,6 @@ public:
 		SDL_Event event;
 		fe::SDLWindow *window = (fe::SDLWindow*)this->window.get();
 		while (window->PollSDLEvent(&event)) {
-			// continue;
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			auto io = ImGui::GetIO();
 			switch (event.type) {
@@ -282,21 +298,27 @@ public:
 		if (ImGui::GetIO().WantCaptureMouse) window->StopMouseCapture();
 	}
 
+	void CheckWinCondition() {
+		if (hasWon || !ballObject || !goalObject) return;
+		float dist = glm::length(ballObject->state.position - goalObject->state.position);
+		if (dist < BALL_RADIUS + 0.8f) {
+			hasWon = true;
+		}
+	}
+
 	void Run() {
 		auto window = this->GetWindow<fe::SDLWindow>();
 		window->Show();
 		window->DisableVSync();
 
-		player->state.position.z = 5;
-		player->state.position.y = 2;
+		glm::vec3 startPos = CellToWorld(0, 0);
+		player->state.position = startPos + glm::vec3(0.0f, 2.0f, 0.0f);
 		if (player->physicsObject) {
 			player->physicsObject->SetPosition(player->state.position);
 		}
 		camera->farDist = farPlane;
 		camera->SetAspect(camera->aspect);
 		SyncCameraToPlayer();
-		float elapsedTimeBumpy = 0.0f;
-		float elapsedTime = 0.0f;
 
 		while (!window->ShouldClose()) {
 
@@ -304,6 +326,10 @@ public:
 
 			if (accelerometer.IsAvailable()) {
 				GetPhysicsEngine()->SetGravity(glm::vec3(accelReading.x * 12.0f, -5.0f, accelReading.z * 12.0f));
+			}
+
+			if (!hasWon) {
+				CheckWinCondition();
 			}
 
 			if (!freeCamera) {
@@ -322,7 +348,6 @@ public:
 				if (window->IsKeyDown(SDL_SCANCODE_SPACE)) cp += camera->up * spd;
 				if (window->IsKeyDown(SDL_SCANCODE_LSHIFT)) cp -= camera->up * spd;
 				camera->SetPos(cp);
-			} else {
 			}
 
 			Update();
@@ -334,22 +359,43 @@ public:
 
 	void InitUI() override {}
 
-
 	void DrawUI() override {
-		if (!showDebugUI) return;
+		if (!showDebugUI && !hasWon) return;
 		BeginFrame();
 
-		DrawDebugUI();
-
-		if (accelerometer.IsAvailable()) {
-			ImGui::Begin("Accelerometer");
-			ImGui::Text("X: %.4f", accelReading.x);
-			ImGui::Text("Y: %.4f", accelReading.y);
-			ImGui::Text("Z: %.4f", accelReading.z);
-			if (ImGui::Button("Calibrate")) {
-				accelerometer.Calibrate();
+		if (hasWon) {
+			ImGui::SetNextWindowSize(ImVec2(300, 120), ImGuiCond_Always);
+			ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f),
+				ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			ImGui::Begin("##won", nullptr,
+				ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground);
+			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "YOU WON!");
+			if (ImGui::Button("Play Again")) {
+				hasWon = false;
+				glm::vec3 startPos = CellToWorld(0, 0);
+				startPos.y = 1.0f;
+				ballObject->state.position = startPos;
+				if (ballObject->physicsObject) {
+					ballObject->physicsObject->SetPosition(startPos);
+				}
 			}
 			ImGui::End();
+		}
+
+		if (showDebugUI) {
+			DrawDebugUI();
+
+			if (accelerometer.IsAvailable()) {
+				ImGui::Begin("Accelerometer");
+				ImGui::Text("X: %.4f", accelReading.x);
+				ImGui::Text("Y: %.4f", accelReading.y);
+				ImGui::Text("Z: %.4f", accelReading.z);
+				if (ImGui::Button("Calibrate")) {
+					accelerometer.Calibrate();
+				}
+				ImGui::End();
+			}
 		}
 
 		EndFrame();
