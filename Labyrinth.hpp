@@ -398,7 +398,7 @@ public:
 
 				for (size_t i = 0; i < accelerometers.size(); i++) {
 					bool isSelected = ((int)i == selectedAccel);
-					if (ImGui::Selectable(accelerometers[i].GetName().c_str(), isSelected)) {
+					if (ImGui::Selectable((accelerometers[i].GetName() + "##" + std::to_string(i)).c_str(), isSelected)) {
 						selectedAccel = (int)i;
 					}
 					ImGui::SameLine();
