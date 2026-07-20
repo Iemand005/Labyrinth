@@ -109,7 +109,7 @@ endif()
 set(RESOURCE_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/resources)
 set(RESOURCE_OUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/resources)
 
-add_custom_command(TARGET Labyrinth POST_BUILD
+add_custom_target(CopyResources_Labyrinth ALL
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${RESOURCE_SRC_DIR} ${RESOURCE_OUT_DIR}
 	COMMENT "Copying resources to ${RESOURCE_OUT_DIR}"
 )
@@ -157,6 +157,7 @@ if(GLSLC)
 	endforeach()
 
 	add_custom_target(SPIRV_Shaders_Labyrinth ALL DEPENDS ${SPIRV_OUTPUTS})
+	add_dependencies(SPIRV_Shaders_Labyrinth CopyResources_Labyrinth)
 	add_dependencies(Labyrinth SPIRV_Shaders_Labyrinth)
 else()
 	message(WARNING "glslc not found — shader compilation skipped. Set VULKAN_SDK environment variable.")
