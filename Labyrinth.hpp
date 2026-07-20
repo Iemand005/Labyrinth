@@ -119,7 +119,8 @@ public:
 		auto ball = std::make_shared<fe::Object<>>(sphereMesh);
 		ball->name = "Ball";
 		ball->state.position = glm::vec3(0.0f, 1.0f, 0.0f);
-		ball->gravityEnabled = true;
+		// ball->gravityEnabled = true;
+
 		ball->SetPhysicsObject(GetPhysicsEngine()->CreateObject(glm::vec3(1.0f), true));
 		if (ball->physicsObject) {
 			ball->physicsObject->SetPosition(ball->state.position);
@@ -130,7 +131,7 @@ public:
 		this->player = std::make_shared<fe::Character>();
 		this->scene->AddObject(player);
 		this->player->state.position = glm::vec3(3.0f, 3.0f, 3.0f);
-		this->player->gravityEnabled = true;
+		// this->player->gravityEnabled = true;
 		RebuildPlayerPhysicsBody();
 		if (this->player->physicsObject) {
 			this->player->physicsObject->SetPosition(this->player->state.position);
