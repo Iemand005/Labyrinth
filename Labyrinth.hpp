@@ -318,6 +318,7 @@ public:
 				spawn.y = 4.0f;
 				ballObject->state.position = spawn;
 				ballObject->physicsObject->SetPosition(spawn);
+				ballObject->physicsObject->SetLinearVelocity(glm::vec3(0.0f));
 			}
 		}
 	}
@@ -393,7 +394,9 @@ public:
 			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "YOU WON!");
 			if (ImGui::Button("Play Again")) {
 				hasWon = false;
-				glm::vec3 startPos = CellToWorld(0, 0);
+		glm::vec3 startPos = CellToWorld(0, 0);
+		startPos.x += 0.5f;
+		startPos.z += 0.5f;
 				startPos.y = 1.0f;
 				ballObject->state.position = startPos;
 				if (ballObject->physicsObject) {
