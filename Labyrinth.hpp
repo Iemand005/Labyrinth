@@ -158,13 +158,17 @@ public:
 
 		// Ground plane
 		float groundSize = std::max(totalW, totalH) + 2.0f;
-		auto planeMesh = fe::Primitives::GeneratePlane(groundSize, groundSize);
-		auto ground = std::make_shared<fe::Object<>>(planeMesh);
+		auto groundMesh = fe::Primitives::GenerateCube(
+			{fe::PlaneDirection::Front, fe::PlaneDirection::Back, fe::PlaneDirection::Left,
+			 fe::PlaneDirection::Right, fe::PlaneDirection::Bottom},
+			fe::Primitives::defaultUVs, 1.0f);
+		auto ground = std::make_shared<fe::Object<>>(groundMesh);
 		ground->name = "Ground";
-		ground->state.position = glm::vec3(0.0f, 0.0f, 0.0f);
+		ground->state.position = glm::vec3(0.0f, -0.5f, 0.0f);
+		ground->state.scale = glm::vec3(groundSize, 1.0f, groundSize);
 		ground->color = glm::vec3(0.0f, 0.0f, 0.0f);
 		ground->isStatic = true;
-		ground->SetPhysicsObject(GetPhysicsEngine()->CreateObject(planeMesh.vertices, planeMesh.indices));
+		ground->SetPhysicsObject(GetPhysicsEngine()->CreateObject(glm::vec3(groundSize, 1.0f, groundSize), false));
 		if (ground->physicsObject) {
 			ground->physicsObject->SetPosition(ground->state.position);
 		}
@@ -175,7 +179,7 @@ public:
 		ballObject = std::make_shared<fe::Object<>>(sphereMesh);
 		ballObject->name = "Ball";
 		glm::vec3 startPos = CellToWorld(0, 0);
-		startPos.y = 1.0f;
+		startPos.y = BALL_RADIUS + 0.01f;
 		ballObject->state.position = startPos;
 		ballObject->SetPhysicsObject(GetPhysicsEngine()->CreateSphereObject(BALL_RADIUS, true));
 		if (ballObject->physicsObject) {
@@ -331,7 +335,9 @@ public:
 
 			if (!accelerometers.empty() && selectedAccel < (int)accelReadings.size()) {
 				auto& ar = accelReadings[selectedAccel];
-				GetPhysicsEngine()->SetGravity(glm::vec3(ar.x * 12.0f, -5.0f, ar.z * 12.0f));
+				GetPhysicsEngine()->SetGravity(glm::vec3(ar.x * 12.0f, -9.81f, ar.z * 12.0f));
+			} else {
+				GetPhysicsEngine()->SetGravity(glm::vec3(0.0f, -9.81f, 0.0f));
 			}
 
 			if (!hasWon) {
