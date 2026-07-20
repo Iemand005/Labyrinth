@@ -95,6 +95,20 @@ public:
 		);
 	}
 
+	glm::vec3 GetBallSpawnPos() {
+		glm::vec3 pos = CellToWorld(0, 0);
+		pos.y = 4.0f;
+		return pos;
+	}
+
+	void ResetBallToSpawn() {
+		if (!ballObject || !ballObject->physicsObject) return;
+		glm::vec3 pos = GetBallSpawnPos();
+		ballObject->state.position = pos;
+		ballObject->physicsObject->SetPosition(pos);
+		ballObject->physicsObject->SetLinearVelocity(glm::vec3(0.0f));
+	}
+
 	void AddWall(glm::vec3 pos, glm::vec3 size, glm::vec3 color) {
 		auto wallMesh = fe::Primitives::GenerateCube(
 			{fe::PlaneDirection::Front, fe::PlaneDirection::Back, fe::PlaneDirection::Left,
@@ -174,14 +188,9 @@ public:
 		auto sphereMesh = fe::Primitives::GenerateSphere(BALL_RADIUS, 32, 24);
 		ballObject = std::make_shared<fe::Object<>>(sphereMesh);
 		ballObject->name = "Ball";
-		glm::vec3 startPos = CellToWorld(0, 0);
-		startPos.y = 4.0f;
-		ballObject->state.position = startPos;
 		ballObject->SetPhysicsObject(GetPhysicsEngine()->CreateSphereObject(BALL_RADIUS, true));
-		if (ballObject->physicsObject) {
-			ballObject->physicsObject->SetPosition(ballObject->state.position);
-		}
 		this->scene->AddObject(ballObject);
+		ResetBallToSpawn();
 
 		// Goal object at cell (MAZE_COLS-1, MAZE_ROWS-1) bottom-right
 		float goalSize = 0.8f;
@@ -314,11 +323,7 @@ public:
 			float halfBoard = std::max(MAZE_COLS, MAZE_ROWS) * CELL_SIZE * 0.5f + 1.0f;
 			auto& bp = ballObject->state.position;
 			if (bp.y < -5.0f || bp.x < -halfBoard || bp.x > halfBoard || bp.z < -halfBoard || bp.z > halfBoard) {
-				glm::vec3 spawn = CellToWorld(0, 0);
-				spawn.y = 4.0f;
-				ballObject->state.position = spawn;
-				ballObject->physicsObject->SetPosition(spawn);
-				ballObject->physicsObject->SetLinearVelocity(glm::vec3(0.0f));
+				ResetBallToSpawn();
 			}
 		}
 	}
@@ -394,14 +399,7 @@ public:
 			ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "YOU WON!");
 			if (ImGui::Button("Play Again")) {
 				hasWon = false;
-		glm::vec3 startPos = CellToWorld(0, 0);
-		startPos.x += 0.5f;
-		startPos.z += 0.5f;
-				startPos.y = 1.0f;
-				ballObject->state.position = startPos;
-				if (ballObject->physicsObject) {
-					ballObject->physicsObject->SetPosition(startPos);
-				}
+				ResetBallToSpawn();
 			}
 			ImGui::End();
 		}
