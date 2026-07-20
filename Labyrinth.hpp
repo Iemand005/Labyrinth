@@ -20,7 +20,9 @@
 #include <EditableGame.hpp>
 #include <Primitives.hpp>
 #include <Graphics/VulkanDevice.hpp>
+#ifdef FE_INCLUDE_OPENVR
 #include <openvr/OpenVR.hpp>
+#endif
 
 class Labyrinth : public fe::EditableGame {
 public:
