@@ -102,20 +102,39 @@ public:
 
 	void LoadModels() {
 
+		// Ground plane (flat horizontal, 20x20)
+		auto planeMesh = fe::Primitives::GeneratePlane(20.0f, 20.0f);
+		auto ground = std::make_shared<fe::Object<>>(planeMesh);
+		ground->name = "Ground";
+		ground->state.position = glm::vec3(0.0f, 0.0f, 0.0f);
+		ground->isStatic = true;
+		ground->SetPhysicsObject(GetPhysicsEngine()->CreateObject(planeMesh.vertices, planeMesh.indices));
+		if (ground->physicsObject) {
+			ground->physicsObject->SetPosition(ground->state.position);
+		}
+		this->scene->AddObject(ground);
+
+		// Ball (sphere on the plane)
+		auto sphereMesh = fe::Primitives::GenerateSphere(0.5f, 32, 24);
+		auto ball = std::make_shared<fe::Object<>>(sphereMesh);
+		ball->name = "Ball";
+		ball->state.position = glm::vec3(0.0f, 1.0f, 0.0f);
+		ball->gravityEnabled = true;
+		ball->SetPhysicsObject(GetPhysicsEngine()->CreateObject(glm::vec3(1.0f), true));
+		if (ball->physicsObject) {
+			ball->physicsObject->SetPosition(ball->state.position);
+		}
+		this->scene->AddObject(ball);
+
+		// Player
 		this->player = std::make_shared<fe::Character>();
 		this->scene->AddObject(player);
-		this->player->state.position = glm::vec3(0.0f, 2.0f, 5.0f);
+		this->player->state.position = glm::vec3(3.0f, 3.0f, 3.0f);
 		this->player->gravityEnabled = true;
 		RebuildPlayerPhysicsBody();
 		if (this->player->physicsObject) {
 			this->player->physicsObject->SetPosition(this->player->state.position);
 		}
-
-		auto sphereMesh = fe::Primitives::GenerateSphere(0.5f, 32, 24);
-		auto sphereObject = std::make_shared<fe::Object<>>(sphereMesh);
-		sphereObject->name = "Sphere";
-		sphereObject->state.position = glm::vec3(2.0f, 1.0f, 0.0f);
-		this->scene->AddObject(sphereObject);
 	}
 
 	void SyncCameraToPlayer() {
