@@ -309,6 +309,17 @@ public:
 		if (dist < BALL_RADIUS + 0.8f) {
 			hasWon = true;
 		}
+
+		if (!hasWon && ballObject && ballObject->physicsObject) {
+			float halfBoard = std::max(MAZE_COLS, MAZE_ROWS) * CELL_SIZE * 0.5f + 1.0f;
+			auto& bp = ballObject->state.position;
+			if (bp.y < -5.0f || bp.x < -halfBoard || bp.x > halfBoard || bp.z < -halfBoard || bp.z > halfBoard) {
+				glm::vec3 spawn = CellToWorld(0, 0);
+				spawn.y = 4.0f;
+				ballObject->state.position = spawn;
+				ballObject->physicsObject->SetPosition(spawn);
+			}
+		}
 	}
 
 	void Run() {
