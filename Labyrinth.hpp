@@ -171,6 +171,40 @@ public:
 			this->scene->AddObject(wall);
 		}
 
+		// Random inner walls
+		srand(42);
+		for (int i = 0; i < 15; i++) {
+			bool horizontal = (rand() % 2 == 0);
+			float wallLen = 2.0f + (rand() % 4) * 1.0f;
+			float wx = (float)((rand() % 17) - 8);
+			float wz = (float)((rand() % 17) - 8);
+
+			glm::vec3 wPos, wSize;
+			if (horizontal) {
+				wPos = glm::vec3(wx, wallHeight * 0.5f, wz);
+				wSize = glm::vec3(wallLen, wallHeight, wallThickness);
+			} else {
+				wPos = glm::vec3(wx, wallHeight * 0.5f, wz);
+				wSize = glm::vec3(wallThickness, wallHeight, wallLen);
+			}
+
+			auto wallMesh = fe::Primitives::GenerateCube(
+				{fe::PlaneDirection::Front, fe::PlaneDirection::Back, fe::PlaneDirection::Left,
+				 fe::PlaneDirection::Right, fe::PlaneDirection::Top, fe::PlaneDirection::Bottom},
+				fe::Primitives::defaultUVs, 1.0f);
+			auto wall = std::make_shared<fe::Object<>>(wallMesh);
+			wall->name = "Wall";
+			wall->state.position = wPos;
+			wall->state.scale = wSize;
+			wall->color = glm::vec3(0.2f, 0.5f, 0.8f);
+			wall->isStatic = true;
+			wall->SetPhysicsObject(GetPhysicsEngine()->CreateObject(wSize, false));
+			if (wall->physicsObject) {
+				wall->physicsObject->SetPosition(wPos);
+			}
+			this->scene->AddObject(wall);
+		}
+
 		// Player
 		this->player = std::make_shared<fe::Character>();
 		this->scene->AddObject(player);
