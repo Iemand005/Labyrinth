@@ -127,24 +127,54 @@ public:
 		}
 		this->scene->AddObject(ground);
 
-		// Ball (sphere on the plane)
+		// Ball (sphere on the plane, rotation enabled)
 		auto sphereMesh = fe::Primitives::GenerateSphere(0.5f, 32, 24);
 		auto ball = std::make_shared<fe::Object<>>(sphereMesh);
 		ball->name = "Ball";
 		ball->state.position = glm::vec3(0.0f, 1.0f, 0.0f);
-		// ball->gravityEnabled = true;
 
-		ball->SetPhysicsObject(GetPhysicsEngine()->CreateObject(glm::vec3(1.0f), true));
+		ball->SetPhysicsObject(GetPhysicsEngine()->CreateObject(glm::vec3(0.5f), true, true));
 		if (ball->physicsObject) {
 			ball->physicsObject->SetPosition(ball->state.position);
 		}
 		this->scene->AddObject(ball);
 
+		// Walls around the 20x20 plane
+		float wallHeight = 1.0f;
+		float wallThickness = 0.5f;
+		float halfSize = 10.0f;
+		float wallColorR = 0.3f, wallColorG = 0.3f, wallColorB = 0.3f;
+
+		struct WallDef { glm::vec3 pos; glm::vec3 size; };
+		WallDef walls[] = {
+			{ glm::vec3(0.0f, wallHeight * 0.5f, -halfSize), glm::vec3(20.0f + wallThickness, wallHeight, wallThickness) },  // back
+			{ glm::vec3(0.0f, wallHeight * 0.5f,  halfSize), glm::vec3(20.0f + wallThickness, wallHeight, wallThickness) },  // front
+			{ glm::vec3(-halfSize, wallHeight * 0.5f, 0.0f), glm::vec3(wallThickness, wallHeight, 20.0f) },                // left
+			{ glm::vec3( halfSize, wallHeight * 0.5f, 0.0f), glm::vec3(wallThickness, wallHeight, 20.0f) },                // right
+		};
+
+		for (auto& w : walls) {
+			auto wallMesh = fe::Primitives::GenerateCube(
+				{fe::PlaneDirection::Front, fe::PlaneDirection::Back, fe::PlaneDirection::Left,
+				 fe::PlaneDirection::Right, fe::PlaneDirection::Top, fe::PlaneDirection::Bottom},
+				fe::Primitives::defaultUVs, 1.0f);
+			auto wall = std::make_shared<fe::Object<>>(wallMesh);
+			wall->name = "Wall";
+			wall->state.position = w.pos;
+			wall->state.scale = w.size;
+			wall->color = glm::vec3(wallColorR, wallColorG, wallColorB);
+			wall->isStatic = true;
+			wall->SetPhysicsObject(GetPhysicsEngine()->CreateObject(w.size, false));
+			if (wall->physicsObject) {
+				wall->physicsObject->SetPosition(w.pos);
+			}
+			this->scene->AddObject(wall);
+		}
+
 		// Player
 		this->player = std::make_shared<fe::Character>();
 		this->scene->AddObject(player);
 		this->player->state.position = glm::vec3(3.0f, 3.0f, 3.0f);
-		// this->player->gravityEnabled = true;
 		RebuildPlayerPhysicsBody();
 		if (this->player->physicsObject) {
 			this->player->physicsObject->SetPosition(this->player->state.position);
@@ -235,6 +265,12 @@ public:
 		while (!window->ShouldClose()) {
 
 			ProcessInput();
+
+			if (accelerometer.IsAvailable()) {
+				float gx = accelReading.x * -9.81f;
+				float gz = accelReading.z * 9.81f;
+				GetPhysicsEngine()->SetGravity(glm::vec3(gx, -9.81f, gz));
+			}
 
 			if (!freeCamera) {
 				SyncCameraToPlayer();
