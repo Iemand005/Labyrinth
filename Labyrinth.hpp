@@ -329,8 +329,9 @@ public:
 
 			ProcessInput();
 
-			if (accelerometer.IsAvailable()) {
-				GetPhysicsEngine()->SetGravity(glm::vec3(accelReading.x * 12.0f, -5.0f, accelReading.z * 12.0f));
+			if (!accelerometers.empty() && selectedAccel < (int)accelReadings.size()) {
+				auto& ar = accelReadings[selectedAccel];
+				GetPhysicsEngine()->SetGravity(glm::vec3(ar.x * 12.0f, -5.0f, ar.z * 12.0f));
 			}
 
 			if (!hasWon) {
@@ -342,6 +343,7 @@ public:
 			}
 
 			if (freeCamera) {
+				int freeCamSpeed = 10;
 				double dt = fpsCounter.deltaTime;
 				float spd = freeCamSpeed * dt;
 				glm::vec3 cp = camera->GetPos();
@@ -391,14 +393,30 @@ public:
 		if (showDebugUI) {
 			DrawDebugUI();
 
-			if (accelerometer.IsAvailable()) {
-				ImGui::Begin("Accelerometer");
-				ImGui::Text("X: %.4f", accelReading.x);
-				ImGui::Text("Y: %.4f", accelReading.y);
-				ImGui::Text("Z: %.4f", accelReading.z);
-				if (ImGui::Button("Calibrate")) {
-					accelerometer.Calibrate();
+			if (!accelerometers.empty()) {
+				ImGui::Begin("Accelerometers");
+
+				for (size_t i = 0; i < accelerometers.size(); i++) {
+					bool isSelected = ((int)i == selectedAccel);
+					if (ImGui::Selectable(accelerometers[i].GetName().c_str(), isSelected)) {
+						selectedAccel = (int)i;
+					}
+					ImGui::SameLine();
+					ImGui::TextDisabled("(%.4f, %.4f, %.4f)", accelReadings[i].x, accelReadings[i].y, accelReadings[i].z);
+
+					if (isSelected) {
+						ImGui::Indent();
+						ImGui::Text("X: %.4f", accelReadings[i].x);
+						ImGui::Text("Y: %.4f", accelReadings[i].y);
+						ImGui::Text("Z: %.4f", accelReadings[i].z);
+						if (ImGui::Button(("Calibrate##" + std::to_string(i)).c_str())) {
+							accelerometers[i].Calibrate();
+						}
+						ImGui::Unindent();
+					}
+					ImGui::Separator();
 				}
+
 				ImGui::End();
 			}
 		}
