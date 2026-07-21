@@ -39,8 +39,8 @@ public:
 	std::vector<fe::Accelerometer> accelerometers;
 	std::vector<glm::vec3> accelReadings;
 	int selectedAccel = 0;
-	std::shared_ptr<fe::Object<>> ballObject;
-	std::shared_ptr<fe::Object<>> goalObject;
+	std::shared_ptr<fe::Object> ballObject;
+	std::shared_ptr<fe::Object> goalObject;
 
 	std::vector<fe::Joystick> joysicks;
 
@@ -123,7 +123,7 @@ public:
 			{fe::PlaneDirection::Front, fe::PlaneDirection::Back, fe::PlaneDirection::Left,
 			 fe::PlaneDirection::Right, fe::PlaneDirection::Top, fe::PlaneDirection::Bottom},
 			fe::Primitives::defaultUVs, 1.0f);
-		auto wall = std::make_shared<fe::Object<>>(wallMesh);
+		auto wall = std::make_shared<fe::Object>(wallMesh);
 		wall->name = "Wall";
 		wall->state.position = pos;
 		wall->state.scale = size;
@@ -234,7 +234,7 @@ public:
 		// Ground plane
 		float groundSize = std::max(totalW, totalH) + 2.0f;
 		auto planeMesh = fe::Primitives::GeneratePlane(groundSize, groundSize);
-		auto ground = std::make_shared<fe::Object<>>(planeMesh);
+		auto ground = std::make_shared<fe::Object>(planeMesh);
 		ground->name = "Ground";
 		ground->state.position = glm::vec3(0.0f, 0.0f, 0.0f);
 		ground->color = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -247,7 +247,7 @@ public:
 
 		// Ball - start at cell (0,0) top-left
 		auto sphereMesh = fe::Primitives::GenerateSphere(BALL_RADIUS, 32, 24);
-		ballObject = std::make_shared<fe::Object<>>(sphereMesh);
+		ballObject = std::make_shared<fe::Object>(sphereMesh);
 		ballObject->name = "Ball";
 		ballObject->SetPhysicsObject(GetPhysicsEngine()->CreateSphereObject(BALL_RADIUS, true));
 		this->scene->AddObject(ballObject);
@@ -256,7 +256,7 @@ public:
 		// Goal object at cell (MAZE_COLS-1, MAZE_ROWS-1) bottom-right
 		float goalSize = 0.8f;
 		auto goalMesh = fe::Primitives::GenerateSphere(goalSize, 16, 12);
-		goalObject = std::make_shared<fe::Object<>>(goalMesh);
+		goalObject = std::make_shared<fe::Object>(goalMesh);
 		goalObject->name = "Goal";
 		glm::vec3 goalPos = CellToWorld(MAZE_COLS - 1, MAZE_ROWS - 1);
 		goalPos.y = 0.8f;
