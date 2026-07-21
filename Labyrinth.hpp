@@ -42,6 +42,8 @@ public:
 	std::shared_ptr<fe::Object<>> ballObject;
 	std::shared_ptr<fe::Object<>> goalObject;
 
+	std::vector<fe::Joystick> joysicks;
+
 	static constexpr int MAZE_COLS = 8;
 	static constexpr int MAZE_ROWS = 8;
 	static constexpr float CELL_SIZE = 2.0f;
@@ -288,6 +290,7 @@ public:
 	void ProcessInput() {
 		SDL_Event event;
 		fe::SDLWindow *window = (fe::SDLWindow*)this->window.get();
+		window->UpdateJoysticks();
 		while (window->PollSDLEvent(&event)) {
 			ImGui_ImplSDL3_ProcessEvent(&event);
 			auto io = ImGui::GetIO();
@@ -462,6 +465,14 @@ public:
 					ImGui::Separator();
 				}
 
+				ImGui::End();
+
+				ImGui::Begin("Joysticks");
+				{
+					for (auto &boystick : joysicks) {
+
+					}
+				}
 				ImGui::End();
 			}
 		}
