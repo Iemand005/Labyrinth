@@ -34,7 +34,7 @@ public:
 	bool useRectangularPlayerHitbox = true;
 	bool hasWon = false;
 	unsigned int mazeSeed = 0;
-	std::vector<std::shared_ptr<fe::ObjectBase>> mazeWalls;
+	std::vector<std::shared_ptr<fe::Object>> mazeWalls;
 
 	std::vector<fe::Accelerometer> accelerometers;
 	std::vector<glm::vec3> accelReadings;
