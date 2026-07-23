@@ -129,7 +129,7 @@ public:
 		wall->state.scale = size;
 		wall->color = color;
 		wall->isStatic = true;
-		wall->SetPhysicsObject(GetPhysicsEngine()->CreateObject(size, false));
+		wall->SetPhysicsObject(GetPhysicsFactory()->CreateObject(size, false));
 		if (wall->physicsObject) {
 			wall->physicsObject->SetPosition(pos);
 		}
@@ -197,7 +197,7 @@ public:
 
 		LoadModels();
 
-		GetPhysicsEngine()->EnableGravity();
+		GetPhysicsFactory()->EnableGravity();
 
 		accelerometers = fe::Accelerometer::EnumerateAll();
 		accelReadings.resize(accelerometers.size(), glm::vec3(0.0f));
@@ -211,11 +211,11 @@ public:
 	void OnPreSwap() override {}
 
 	void RebuildPlayerPhysicsBody() {
-		auto physicsEngine = GetPhysicsEngine();
-		if (!player || !physicsEngine) return;
+		auto PhysicsFactory = GetPhysicsFactory();
+		if (!player || !PhysicsFactory) return;
 
 		const glm::vec3 size = useRectangularPlayerHitbox ? glm::vec3(0.4f, 1.5f, 0.4f) : glm::vec3(1.0f, 1.0f, 1.0f);
-		auto newPhysics = physicsEngine->CreateObject(size, true);
+		auto newPhysics = PhysicsFactory->CreateObject(size, true);
 		if (!newPhysics) return;
 
 		this->player->SetPhysicsObject(std::move(newPhysics));
@@ -239,7 +239,7 @@ public:
 		ground->state.position = glm::vec3(0.0f, 0.0f, 0.0f);
 		ground->color = glm::vec3(0.0f, 0.0f, 0.0f);
 		ground->isStatic = true;
-		ground->SetPhysicsObject(GetPhysicsEngine()->CreateObject(planeMesh.vertices, planeMesh.indices));
+		ground->SetPhysicsObject(GetPhysicsFactory()->CreateObject(planeMesh.vertices, planeMesh.indices));
 		if (ground->physicsObject) {
 			ground->physicsObject->SetPosition(ground->state.position);
 		}
@@ -249,7 +249,7 @@ public:
 		auto sphereMesh = fe::Primitives::GenerateSphere(BALL_RADIUS, 32, 24);
 		ballObject = std::make_shared<fe::Object>(sphereMesh);
 		ballObject->name = "Ball";
-		ballObject->SetPhysicsObject(GetPhysicsEngine()->CreateSphereObject(BALL_RADIUS, true));
+		ballObject->SetPhysicsObject(GetPhysicsFactory()->CreateSphereObject(BALL_RADIUS, true));
 		this->scene->AddObject(ballObject);
 		ResetBallToSpawn();
 
@@ -381,9 +381,9 @@ public:
 
 			if (!accelerometers.empty() && selectedAccel < (int)accelReadings.size()) {
 				auto& ar = accelReadings[selectedAccel];
-				GetPhysicsEngine()->SetGravity(glm::vec3(ar.x * 12.0f, -9.81f, ar.y * 12.0f));
+				GetPhysicsFactory()->SetGravity(glm::vec3(ar.x * 12.0f, -9.81f, ar.y * 12.0f));
 			} else {
-				GetPhysicsEngine()->SetGravity(glm::vec3(0.0f, -9.81f, 0.0f));
+				GetPhysicsFactory()->SetGravity(glm::vec3(0.0f, -9.81f, 0.0f));
 			}
 
 			if (!hasWon) {
