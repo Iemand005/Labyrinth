@@ -22,7 +22,7 @@
 #include <EditableGame.hpp>
 #include <Primitives.hpp>
 #include <Sensors/Accelerometer.hpp>
-#include <Graphics/VulkanDevice.hpp>
+// #include <Graphics/VulkanDevice.hpp>
 #ifdef FE_INCLUDE_OPENVR
 #include <openvr/OpenVR.hpp>
 #endif

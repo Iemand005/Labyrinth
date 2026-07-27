@@ -11,7 +11,7 @@ set(KISSFFT_STATIC ON CACHE BOOL "Build static library" FORCE)
 set(FE_INCLUDE_OPENVR OFF CACHE BOOL "Include OpenVR" FORCE)
 
 
-# set(FE_EXCLUDE_JOLT OFF CACHE BOOL "Disable JOLT" FORCE)
+set(FE_EXCLUDE_JOLT OFF CACHE BOOL "Disable JOLT" FORCE)
 
 set(ENGINE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../FenixEngine")
 
@@ -51,8 +51,8 @@ file(GLOB_RECURSE IMGUI_SOURCE_FILES
 	${IMGUI_DIR}/backends/imgui_impl_sdl3.cpp
 	${IMGUI_DIR}/backends/imgui_impl_sdlgpu3.cpp
 	${IMGUI_DIR}/backends/imgui_impl_sdlrenderer3.cpp
-	${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
-	${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
+	# ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+	# ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
 	${IMGUI_DIR}/imgui_tables.cpp
 	${IMGUI_DIR}/imgui_widgets.cpp
 	${IMGUI_DIR}/imgui_demo.cpp
@@ -81,7 +81,7 @@ target_link_libraries(Labyrinth PRIVATE
 	# Jolt::Jolt
 )
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT EMSCRIPTEN)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
 target_include_directories(Labyrinth PRIVATE ${PIPEWIRE_INCLUDE_DIRS})
@@ -161,4 +161,23 @@ if(GLSLC)
 	add_dependencies(Labyrinth SPIRV_Shaders_Labyrinth)
 else()
 	message(WARNING "glslc not found — shader compilation skipped. Set VULKAN_SDK environment variable.")
+endif()
+
+
+if(EMSCRIPTEN)
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
+    
+    target_compile_options(ShaderSaver PRIVATE
+        -g
+        -fdebug-compilation-dir="${CMAKE_SOURCE_DIR}"
+    )
+    target_link_options(ShaderSaver PRIVATE
+        -g
+        -gsource-map
+    )
+    
+    set_target_properties(ShaderSaver PROPERTIES
+        SUFFIX ".html"
+        LINK_FLAGS "-s USE_WEBGL2=1 -s FULL_ES3=1 -sGL_ENABLE_GET_PROC_ADDRESS=1 -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=64MB -s NO_EXIT_RUNTIME=1 -s EXIT_RUNTIME=0 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2 -sFORCE_FILESYSTEM=1 -sEXPORTED_RUNTIME_METHODS=FS,ccall,cwrap -sEXPORTED_FUNCTIONS=_main,_emscripten_file_dialog_callback,_malloc,_free --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/FragmentShader.glsl"
+    )
 endif()
