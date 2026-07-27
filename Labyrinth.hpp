@@ -192,8 +192,13 @@ public:
 		SetClearColor(0.1f, 0.3f, 1);
 		mazeSeed = static_cast<unsigned int>(std::random_device{}());
 
+#ifdef __EMSCRIPTEN__
+		if (!useVulkan)
+			LoadShaders("resources/shaders/VertexShader_es.glsl", "resources/shaders/FragmentShader_es.glsl");
+#else
 		if (!useVulkan)
 			LoadShaders("resources/shaders/VertexShader.glsl", "resources/shaders/FragmentShader.glsl");
+#endif
 
 		LoadModels();
 
