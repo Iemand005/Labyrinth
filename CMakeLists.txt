@@ -84,6 +84,10 @@ target_link_libraries(Labyrinth PRIVATE
 	# Jolt::Jolt
 )
 
+target_precompile_headers(Labyrinth PRIVATE
+	"$<$<COMPILE_LANGUAGE:CXX>:${ENGINE_DIR}/src/Engine/pch.hpp>"
+)
+
 if(NOT WIN32 AND NOT EMSCRIPTEN)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PIPEWIRE REQUIRED libpipewire-0.3)
