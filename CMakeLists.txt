@@ -103,8 +103,6 @@ endif()
 set_property(TARGET Labyrinth PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 	
 if(MSVC)
-	target_compile_options(Labyrinth PRIVATE $<$<CONFIG:Debug>:/Zi>)
-
 	target_link_options(Labyrinth PRIVATE $<$<CONFIG:Debug>:/DEBUG>)
 
 	add_compile_options(/RTC1)
