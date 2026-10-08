@@ -186,3 +186,12 @@ if(EMSCRIPTEN)
         LINK_FLAGS "-s USE_WEBGL2=1 -s FULL_ES3=1 -sGL_ENABLE_GET_PROC_ADDRESS=1 -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=64MB -s NO_EXIT_RUNTIME=1 -s EXIT_RUNTIME=0 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2 -sFORCE_FILESYSTEM=1 -sEXPORTED_RUNTIME_METHODS=FS,ccall,cwrap -sEXPORTED_FUNCTIONS=_main,_emscripten_file_dialog_callback,_malloc,_free --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/resources@resources"
     )
 endif()
+
+# Dear ImGui is a vendored third-party library. Its .cpp files define
+# IMGUI_DEFINE_MATH_OPERATORS immediately before including imgui.h, which
+# imgui_internal.h hard-errors on unless that define came first. A unity blob
+# that pulls a game/engine file including imgui.h ahead of them breaks every
+# ImGui file after it, so keep each ImGui file in its own translation unit.
+set_source_files_properties(${IMGUI_SOURCE_FILES} PROPERTIES
+	SKIP_UNITY_BUILD_INCLUSION ON
+)
