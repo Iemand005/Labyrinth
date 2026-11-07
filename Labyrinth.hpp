@@ -24,7 +24,7 @@
 #include <Sensors/Accelerometer.hpp>
 // #include <Graphics/VulkanDevice.hpp>
 #ifdef FE_INCLUDE_OPENVR
-#include <openvr/OpenVR.hpp>
+#include <vr/OpenVR.hpp>
 #endif
 
 class Labyrinth : public fe::EditableGame {
