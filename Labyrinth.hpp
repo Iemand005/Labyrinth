@@ -294,7 +294,7 @@ public:
 
 	void ProcessInput() {
 		SDL_Event event;
-		fe::SDLWindow *window = GetWindow<fe::SDLWindow>();
+		fe::SDLWindow *window = getWindow<fe::SDLWindow>();
 		window->UpdateJoysticks();
 		while (window->PollSDLEvent(&event)) {
 			ImGui_ImplSDL3_ProcessEvent(&event);
@@ -367,7 +367,7 @@ public:
 	}
 
 	void Run() {
-		auto window = this->GetWindow<fe::SDLWindow>();
+		auto window = this->getWindow<fe::SDLWindow>();
 		window->Show();
 		window->DisableVSync();
 
@@ -380,7 +380,7 @@ public:
 		camera->SetAspect(camera->aspect);
 		SyncCameraToPlayer();
 
-		while (!window->ShouldClose()) {
+		while (!window->shouldClose()) {
 
 			ProcessInput();
 
