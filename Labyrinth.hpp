@@ -421,9 +421,9 @@ public:
 		Destroy();
 	}
 
-	void InitUI() override {}
+	void initUI() override {}
 
-	void DrawUI() override {
+	void drawUI() override {
 		if (!showDebugUI && !hasWon) return;
 		BeginFrame();
 
