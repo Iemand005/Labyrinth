@@ -76,7 +76,7 @@ target_include_directories(Labyrinth PRIVATE
 	${ENGINE_DIR}/external/imgui
 	${ENGINE_DIR}/external/kissfft
 	${ENGINE_DIR}/external/SDL/include
-	${ENGINE_DIR}/src/Engine
+	${ENGINE_DIR}/src
 )
 
 target_link_libraries(Labyrinth PRIVATE
@@ -85,7 +85,7 @@ target_link_libraries(Labyrinth PRIVATE
 )
 
 target_precompile_headers(Labyrinth PRIVATE
-	"$<$<COMPILE_LANGUAGE:CXX>:${ENGINE_DIR}/src/Engine/pch.hpp>"
+	"$<$<COMPILE_LANGUAGE:CXX>:${ENGINE_DIR}/src/pch.hpp>"
 )
 
 if(NOT WIN32 AND NOT EMSCRIPTEN)
